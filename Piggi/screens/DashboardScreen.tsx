@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableWithoutFeedback } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableWithoutFeedback, TouchableOpacity } from 'react-native';
 import { PolarChart, Pie } from 'victory-native';
 import { colors } from '../theme/colors';
 import { useTransactionsStore } from '../store/useTransactionsStore';
 import { useLoansStore } from '../store/useLoansStore';
 import { StatCard } from '../components/StatCard';
-import { FinancialSummaryCard } from '../components/FinancialSummaryCard';
 import { SpendingInsights } from '../components/SpendingInsights';
 import { QuickActionMenu } from '../components/QuickActionMenu';
-import { DollarSign, TrendingUp, TrendingDown, CreditCard } from 'lucide-react-native';
+import { DollarSign, TrendingUp, TrendingDown, CreditCard, PieChart, BarChart3 } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
 export default function DashboardScreen() {
   const navigation = useNavigation();
   const [showQuickActions, setShowQuickActions] = useState(false);
+  const [chartView, setChartView] = useState<'pie' | 'line'>('pie');
   const transactions = useTransactionsStore(s => s.transactions);
   const loans = useLoansStore(s => s.loans);
 
@@ -29,7 +29,7 @@ export default function DashboardScreen() {
   const balance = incomeTotal - expenseTotal;
   const totalLoans = loans.reduce((sum, loan) => sum + loan.principal, 0);
 
-  const data = [
+  const pieData = [
     { label: 'Income', value: incomeTotal, color: colors.incomeGraph },
     { label: 'Expense', value: expenseTotal, color: colors.expenseGraph },
   ];
@@ -50,25 +50,23 @@ export default function DashboardScreen() {
           </View>
         </TouchableWithoutFeedback>
 
-        {/* Financial Summary Card */}
-        <FinancialSummaryCard 
-          income={incomeTotal}
-          expenses={expenseTotal}
-          period="This Month"
-        />
+        {/* Main Balance Overview */}
+        <View style={styles.balanceOverview}>
+          <Text style={styles.balanceLabel}>Current Balance</Text>
+          <Text style={[styles.balanceAmount, { 
+            color: balance >= 0 ? colors.income : colors.expense 
+          }]}>
+            ${Math.abs(balance).toFixed(2)}
+          </Text>
+          <Text style={styles.balanceSubtext}>
+            {balance >= 0 ? 'Available' : 'Overdrawn'}
+          </Text>
+        </View>
 
-        {/* Stats Cards Grid */}
+        {/* Stats Cards Grid - Simplified */}
         <View style={styles.statsGrid}>
           <StatCard
-            title="Balance"
-            amount={balance}
-            subtitle={balance >= 0 ? "Looking good!" : "Needs attention"}
-            gradientColors={balance >= 0 ? [colors.income, colors.income + '80'] : [colors.expense, colors.expense + '80']}
-            icon={<DollarSign size={20} color="white" />}
-          />
-          
-          <StatCard
-            title="Income"
+            title="Monthly Income"
             amount={incomeTotal}
             subtitle="This month"
             gradientColors={[colors.income, colors.income + '80']}
@@ -77,7 +75,7 @@ export default function DashboardScreen() {
           />
           
           <StatCard
-            title="Expenses"
+            title="Monthly Expenses"
             amount={expenseTotal}
             subtitle="This month"
             gradientColors={[colors.expense, colors.expense + '80']}
@@ -86,48 +84,92 @@ export default function DashboardScreen() {
           />
           
           <StatCard
-            title="Loans"
+            title="Active Loans"
             amount={totalLoans}
-            subtitle={`${loans.length} active loan${loans.length !== 1 ? 's' : ''}`}
+            subtitle={`${loans.length} loan${loans.length !== 1 ? 's' : ''}`}
             gradientColors={[colors.accent, colors.accent + '80']}
             icon={<CreditCard size={20} color="white" />}
             onPress={() => navigation.navigate('Loans' as never)}
+          />
+          
+          <StatCard
+            title="Net Worth"
+            amount={balance - totalLoans}
+            subtitle="After loans"
+            backgroundColor={colors.card}
+            icon={<DollarSign size={20} color={colors.accent} />}
           />
         </View>
 
         {/* Spending Insights */}
         <SpendingInsights transactions={transactions} />
 
-        {/* Chart Section */}
+        {/* Interactive Chart Section */}
         {(incomeTotal > 0 || expenseTotal > 0) && (
           <View style={styles.chartSection}>
-            <Text style={styles.sectionTitle}>Income vs Expenses</Text>
+            <View style={styles.chartHeader}>
+              <Text style={styles.sectionTitle}>Financial Overview</Text>
+              <View style={styles.chartToggle}>
+                <TouchableOpacity
+                  style={[styles.toggleButton, chartView === 'pie' && styles.toggleButtonActive]}
+                  onPress={() => setChartView('pie')}
+                >
+                  <PieChart size={18} color={chartView === 'pie' ? 'white' : colors.text} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.toggleButton, chartView === 'line' && styles.toggleButtonActive]}
+                  onPress={() => setChartView('line')}
+                >
+                  <BarChart3 size={18} color={chartView === 'line' ? 'white' : colors.text} />
+                </TouchableOpacity>
+              </View>
+            </View>
             
             <View style={styles.chartContainer}>
-              <PolarChart
-                data={data}
-                labelKey="label"
-                valueKey="value"
-                colorKey="color"
-              >
-                <Pie.Chart />
-              </PolarChart>
+              {chartView === 'pie' ? (
+                <PolarChart
+                  data={pieData}
+                  labelKey="label"
+                  valueKey="value"
+                  colorKey="color"
+                >
+                  <Pie.Chart />
+                </PolarChart>
+              ) : (
+                <View style={styles.placeholderContainer}>
+                  <Text style={styles.placeholderTitle}>
+                    Balance Trend Chart
+                  </Text>
+                  <Text style={styles.placeholderSubtext}>
+                    Coming Soon...
+                  </Text>
+                </View>
+              )}
             </View>
 
-            <View style={styles.legend}>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: colors.income }]} />
-                <Text style={styles.legendText}>
-                  Income: ${incomeTotal.toFixed(2)}
+            {chartView === 'pie' ? (
+              <View style={styles.legend}>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: colors.income }]} />
+                  <Text style={styles.legendText}>
+                    Income: ${incomeTotal.toFixed(2)}
+                  </Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={[styles.legendDot, { backgroundColor: colors.expense }]} />
+                  <Text style={styles.legendText}>
+                    Expenses: ${expenseTotal.toFixed(2)}
+                  </Text>
+                </View>
+              </View>
+            ) : (
+              <View style={styles.legend}>
+                <Text style={styles.legendText}>Balance Over Time</Text>
+                <Text style={styles.legendSubtext}>
+                  Current: ${balance.toFixed(2)}
                 </Text>
               </View>
-              <View style={styles.legendItem}>
-                <View style={[styles.legendDot, { backgroundColor: colors.expense }]} />
-                <Text style={styles.legendText}>
-                  Expenses: ${expenseTotal.toFixed(2)}
-                </Text>
-              </View>
-            </View>
+            )}
           </View>
         )}
 
@@ -191,6 +233,35 @@ const styles = StyleSheet.create({
     opacity: 0.7,
     marginBottom: 20,
   },
+  balanceOverview: {
+    backgroundColor: colors.card,
+    marginHorizontal: 20,
+    marginBottom: 24,
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  balanceLabel: {
+    fontSize: 16,
+    color: colors.text,
+    opacity: 0.8,
+    marginBottom: 8,
+  },
+  balanceAmount: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  balanceSubtext: {
+    fontSize: 14,
+    opacity: 0.7,
+    color: colors.text,
+  },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -203,11 +274,31 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginBottom: 24,
   },
+  chartHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  chartToggle: {
+    flexDirection: 'row',
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    padding: 4,
+  },
+  toggleButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    marginHorizontal: 2,
+  },
+  toggleButtonActive: {
+    backgroundColor: colors.accent,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 16,
   },
   chartContainer: {
     height: 250,
@@ -238,6 +329,11 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontWeight: '500',
   },
+  legendSubtext: {
+    fontSize: 12,
+    color: colors.text,
+    opacity: 0.7,
+  },
   recentSection: {
     marginHorizontal: 20,
     marginBottom: 20,
@@ -259,5 +355,19 @@ const styles = StyleSheet.create({
   recentAmount: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  placeholderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderTitle: {
+    color: colors.text,
+    fontSize: 16,
+  },
+  placeholderSubtext: {
+    color: colors.text,
+    opacity: 0.7,
+    marginTop: 8,
   },
 });
