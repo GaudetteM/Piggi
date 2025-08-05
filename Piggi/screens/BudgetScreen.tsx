@@ -2,13 +2,27 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { colors } from '../theme/colors';
 import { useBudgetStore } from '../store/useBudgetStore';
+import { useTransactionsStore } from '../store/useTransactionsStore';
 import { BudgetCategoryCard } from '../components/BudgetCategoryCard';
+import { CreateBudgetModal } from '../components/CreateBudgetModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PieChart } from 'lucide-react-native';
 
 export const BudgetScreen = () => {
-  const { activeBudget } = useBudgetStore();
+  const { activeBudget, syncBudgetWithTransactions } = useBudgetStore();
+  const transactions = useTransactionsStore(state => state.transactions);
   const [showBudgetPicker, setShowBudgetPicker] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  const handleModalClose = () => {
+    setShowCreateModal(false);
+    // Sync the budget with transactions after creating a new budget
+    if (activeBudget) {
+      setTimeout(() => {
+        syncBudgetWithTransactions(transactions);
+      }, 100);
+    }
+  };
 
   if (!activeBudget) {
     return (
@@ -19,10 +33,18 @@ export const BudgetScreen = () => {
           <Text style={styles.emptySubtitle}>
             Create your first budget to start tracking your spending
           </Text>
-          <TouchableOpacity style={styles.createButton}>
+          <TouchableOpacity 
+            style={styles.createButton}
+            onPress={() => setShowCreateModal(true)}
+          >
             <Text style={styles.createButtonText}>Create Budget</Text>
           </TouchableOpacity>
         </View>
+        
+        <CreateBudgetModal
+          visible={showCreateModal}
+          onClose={handleModalClose}
+        />
       </SafeAreaView>
     );
   }
@@ -118,6 +140,11 @@ export const BudgetScreen = () => {
           />
         )}
         contentContainerStyle={styles.categoriesList}
+      />
+      
+      <CreateBudgetModal
+        visible={showCreateModal}
+        onClose={handleModalClose}
       />
     </SafeAreaView>
   );

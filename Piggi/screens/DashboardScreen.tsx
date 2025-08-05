@@ -16,6 +16,7 @@ export default function DashboardScreen() {
   const [showQuickActions, setShowQuickActions] = useState(false);
   const [chartView, setChartView] = useState<'pie' | 'line'>('pie');
   const transactions = useTransactionsStore(s => s.transactions);
+  const categories = useTransactionsStore(s => s.categories);
   const loans = useLoansStore(s => s.loans);
 
   const incomeTotal = transactions
@@ -29,10 +30,30 @@ export default function DashboardScreen() {
   const balance = incomeTotal - expenseTotal;
   const totalLoans = loans.reduce((sum, loan) => sum + loan.principal, 0);
 
-  const pieData = [
-    { label: 'Income', value: incomeTotal, color: colors.incomeGraph },
-    { label: 'Expense', value: expenseTotal, color: colors.expenseGraph },
-  ];
+  // Generate category-based pie chart data
+  const categoryData = React.useMemo(() => {
+    const expensesByCategory = transactions
+      .filter(t => t.type === 'expense')
+      .reduce((acc, transaction) => {
+        const category = categories.find(c => c.id === transaction.category);
+        if (category) {
+          acc[category.id] = (acc[category.id] || 0) + transaction.amount;
+        }
+        return acc;
+      }, {} as Record<string, number>);
+
+    return Object.entries(expensesByCategory)
+      .map(([categoryId, amount]) => {
+        const category = categories.find(c => c.id === categoryId);
+        return {
+          label: category?.name || 'Unknown',
+          value: amount,
+          color: category?.color || colors.expense,
+        };
+      })
+      .filter(item => item.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [transactions, categories]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -108,7 +129,9 @@ export default function DashboardScreen() {
         {(incomeTotal > 0 || expenseTotal > 0) && (
           <View style={styles.chartSection}>
             <View style={styles.chartHeader}>
-              <Text style={styles.sectionTitle}>Financial Overview</Text>
+              <Text style={styles.sectionTitle}>
+                {chartView === 'pie' ? 'Spending by Category' : 'Financial Overview'}
+              </Text>
               <View style={styles.chartToggle}>
                 <TouchableOpacity
                   style={[styles.toggleButton, chartView === 'pie' && styles.toggleButtonActive]}
@@ -127,14 +150,25 @@ export default function DashboardScreen() {
             
             <View style={styles.chartContainer}>
               {chartView === 'pie' ? (
-                <PolarChart
-                  data={pieData}
-                  labelKey="label"
-                  valueKey="value"
-                  colorKey="color"
-                >
-                  <Pie.Chart />
-                </PolarChart>
+                categoryData.length > 0 ? (
+                  <PolarChart
+                    data={categoryData}
+                    labelKey="label"
+                    valueKey="value"
+                    colorKey="color"
+                  >
+                    <Pie.Chart />
+                  </PolarChart>
+                ) : (
+                  <View style={styles.placeholderContainer}>
+                    <Text style={styles.placeholderTitle}>
+                      No expenses to show
+                    </Text>
+                    <Text style={styles.placeholderSubtext}>
+                      Add some expense transactions to see the breakdown
+                    </Text>
+                  </View>
+                )
               ) : (
                 <View style={styles.placeholderContainer}>
                   <Text style={styles.placeholderTitle}>
@@ -147,29 +181,25 @@ export default function DashboardScreen() {
               )}
             </View>
 
-            {chartView === 'pie' ? (
+            {chartView === 'pie' && categoryData.length > 0 ? (
               <View style={styles.legend}>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: colors.income }]} />
-                  <Text style={styles.legendText}>
-                    Income: ${incomeTotal.toFixed(2)}
-                  </Text>
-                </View>
-                <View style={styles.legendItem}>
-                  <View style={[styles.legendDot, { backgroundColor: colors.expense }]} />
-                  <Text style={styles.legendText}>
-                    Expenses: ${expenseTotal.toFixed(2)}
-                  </Text>
-                </View>
+                {categoryData.slice(0, 4).map((item, index) => (
+                  <View key={index} style={styles.legendItem}>
+                    <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                    <Text style={styles.legendText}>
+                      {item.label}: ${item.value.toFixed(2)}
+                    </Text>
+                  </View>
+                ))}
               </View>
-            ) : (
+            ) : chartView === 'line' ? (
               <View style={styles.legend}>
                 <Text style={styles.legendText}>Balance Over Time</Text>
                 <Text style={styles.legendSubtext}>
                   Current: ${balance.toFixed(2)}
                 </Text>
               </View>
-            )}
+            ) : null}
           </View>
         )}
 
@@ -309,14 +339,18 @@ const styles = StyleSheet.create({
   },
   legend: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     backgroundColor: colors.card,
     borderRadius: 12,
     padding: 16,
+    gap: 8,
   },
   legendItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    minWidth: '45%',
+    marginBottom: 4,
   },
   legendDot: {
     width: 12,

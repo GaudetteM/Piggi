@@ -1,6 +1,19 @@
 import { create } from 'zustand';
 import uuid from 'react-native-uuid';
 
+// Category mapping between transactions and budgets
+const categoryMapping: Record<string, string> = {
+  'food': 'Food & Dining',
+  'coffee': 'Food & Dining', // Coffee maps to Food & Dining for budget
+  'transport': 'Transportation',
+  'shopping': 'Shopping',
+  'entertainment': 'Entertainment',
+  'utilities': 'Bills & Utilities',
+  'healthcare': 'Healthcare',
+  'education': 'Other',
+  'other-expense': 'Other',
+};
+
 export type BudgetCategory = {
   id: string;
   name: string;
@@ -27,6 +40,8 @@ type BudgetState = {
   deleteBudget: (id: string) => void;
   setActiveBudget: (budget: Budget | null) => void;
   addExpenseToBudget: (categoryId: string, amount: number) => void;
+  syncBudgetWithTransactions: (transactions: Array<{id: string, amount: number, type: string, category: string, date: string}>) => void;
+  getCategoryNameForTransaction: (transactionCategory: string) => string;
 };
 
 const defaultCategories: Omit<BudgetCategory, 'id'>[] = [
@@ -36,6 +51,7 @@ const defaultCategories: Omit<BudgetCategory, 'id'>[] = [
   { name: 'Entertainment', budgetAmount: 100, spent: 0, color: '#96CEB4', icon: '🎬' },
   { name: 'Bills & Utilities', budgetAmount: 300, spent: 0, color: '#FECA57', icon: '💡' },
   { name: 'Healthcare', budgetAmount: 150, spent: 0, color: '#FF9FF3', icon: '🏥' },
+  { name: 'Other', budgetAmount: 100, spent: 0, color: '#9B59B6', icon: '📱' },
 ];
 
 export const useBudgetStore = create<BudgetState>((set, get) => ({
@@ -93,6 +109,50 @@ export const useBudgetStore = create<BudgetState>((set, get) => ({
         ? { ...category, spent: category.spent + amount }
         : category
     );
+
+    const updatedBudget = { ...activeBudget, categories: updatedCategories };
+
+    set((state) => ({
+      budgets: state.budgets.map((budget) =>
+        budget.id === activeBudget.id ? updatedBudget : budget
+      ),
+      activeBudget: updatedBudget,
+    }));
+  },
+
+  getCategoryNameForTransaction: (transactionCategory) => {
+    return categoryMapping[transactionCategory] || 'Other';
+  },
+
+  syncBudgetWithTransactions: (transactions) => {
+    const { activeBudget } = get();
+    if (!activeBudget) return;
+
+    // Reset all spending to 0
+    const resetCategories = activeBudget.categories.map(cat => ({ ...cat, spent: 0 }));
+
+    // Calculate spending for the current budget period
+    const budgetStart = new Date(activeBudget.startDate);
+    const budgetEnd = new Date(activeBudget.endDate);
+
+    const relevantTransactions = transactions.filter(tx => {
+      if (tx.type !== 'expense') return false;
+      const txDate = new Date(tx.date);
+      return txDate >= budgetStart && txDate <= budgetEnd;
+    });
+
+    // Aggregate spending by budget category
+    const spendingByCategory: Record<string, number> = {};
+    relevantTransactions.forEach(tx => {
+      const budgetCategoryName = categoryMapping[tx.category] || 'Other';
+      spendingByCategory[budgetCategoryName] = (spendingByCategory[budgetCategoryName] || 0) + tx.amount;
+    });
+
+    // Update categories with actual spending
+    const updatedCategories = resetCategories.map(cat => ({
+      ...cat,
+      spent: spendingByCategory[cat.name] || 0,
+    }));
 
     const updatedBudget = { ...activeBudget, categories: updatedCategories };
 

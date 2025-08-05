@@ -14,24 +14,35 @@ import {
   useTransactionsStore,
   Transaction,
 } from '../store/useTransactionsStore';
-import uuid from 'react-native-uuid';
-import { suggestCategoryFromTitle } from '../utils/categoryHelpers';
+import { Edit3, Save, X } from 'lucide-react-native';
 
 type Props = {
   visible: boolean;
+  transaction: Transaction | null;
   onClose: () => void;
 };
 
-export default function AddTransactionModal({ visible, onClose }: Props) {
-  const addTransaction = useTransactionsStore(state => state.addTransaction);
+export default function EditTransactionModal({ visible, transaction, onClose }: Props) {
+  const updateTransaction = useTransactionsStore(state => state.updateTransaction);
   const categories = useTransactionsStore(state => state.categories);
 
-  const [title, setTitle] = useState('');
-  const [amount, setAmount] = useState('');
-  const [type, setType] = useState<'income' | 'expense'>('expense');
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [date, setDate] = useState(new Date());
+  const [title, setTitle] = useState(transaction?.title || '');
+  const [amount, setAmount] = useState(transaction?.amount.toString() || '');
+  const [type, setType] = useState<'income' | 'expense'>(transaction?.type || 'expense');
+  const [selectedCategory, setSelectedCategory] = useState(transaction?.category || '');
+  const [date, setDate] = useState(new Date(transaction?.date || new Date()));
   const [isDateModalVisible, setDateModalVisible] = useState(false);
+
+  // Update state when transaction changes
+  React.useEffect(() => {
+    if (transaction) {
+      setTitle(transaction.title);
+      setAmount(transaction.amount.toString());
+      setType(transaction.type);
+      setSelectedCategory(transaction.category);
+      setDate(new Date(transaction.date));
+    }
+  }, [transaction]);
 
   // Filter categories based on selected type
   const availableCategories = categories.filter(
@@ -45,16 +56,6 @@ export default function AddTransactionModal({ visible, onClose }: Props) {
     }
   }, [type, availableCategories, selectedCategory]);
 
-  // Auto-suggest category based on title
-  React.useEffect(() => {
-    if (title.trim().length > 2) {
-      const suggestedCategoryId = suggestCategoryFromTitle(title, type);
-      if (suggestedCategoryId && availableCategories.some(cat => cat.id === suggestedCategoryId)) {
-        setSelectedCategory(suggestedCategoryId);
-      }
-    }
-  }, [title, type, availableCategories]);
-
   const showDatePicker = () => setDateModalVisible(true);
   const hideDatePicker = () => setDateModalVisible(false);
 
@@ -63,51 +64,56 @@ export default function AddTransactionModal({ visible, onClose }: Props) {
     hideDatePicker();
   };
 
-  const resetForm = () => {
-    setTitle('');
-    setAmount('');
-    setType('expense');
-    setSelectedCategory('');
-    setDate(new Date());
-  };
-
-  const handleAdd = () => {
+  const handleSave = () => {
+    if (!transaction) return;
+    
     const numAmount = parseFloat(amount);
+    if (isNaN(numAmount) || !title.trim() || !selectedCategory) {
+      return; // Basic validation
+    }
 
-    const newTransaction: Transaction = {
-      id: uuid.v4().toString(),
+    updateTransaction(transaction.id, {
       title: title.trim(),
       amount: numAmount,
       type,
       date: date.toISOString().slice(0, 10), // YYYY-MM-DD
       category: selectedCategory,
-    };
+    });
 
-    addTransaction(newTransaction);
-    resetForm();
     onClose();
   };
+
+  if (!transaction) return null;
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
         <View style={styles.container}>
-          <Text style={styles.heading}>Add Transaction</Text>
+          <View style={styles.header}>
+            <Edit3 size={20} color={colors.accent} />
+            <Text style={styles.heading}>Edit Transaction</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <X size={20} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+
           <TextInput
             style={styles.input}
             placeholder="Title"
-            placeholderTextColor="#888"
+            placeholderTextColor={colors.text + '60'}
             value={title}
             onChangeText={setTitle}
           />
+
           <TextInput
             style={styles.input}
             placeholder="Amount"
-            placeholderTextColor="#888"
+            placeholderTextColor={colors.text + '60'}
             value={amount}
             onChangeText={setAmount}
             keyboardType="decimal-pad"
           />
+
           <View style={styles.typeSwitch}>
             <TouchableOpacity
               style={[
@@ -188,6 +194,7 @@ export default function AddTransactionModal({ visible, onClose }: Props) {
               })}
             </Text>
           </TouchableOpacity>
+
           <DateTimePickerModal
             isVisible={isDateModalVisible}
             mode="date"
@@ -196,13 +203,15 @@ export default function AddTransactionModal({ visible, onClose }: Props) {
             onConfirm={handleConfirm}
             onCancel={hideDatePicker}
           />
+
           <View style={styles.buttonsRow}>
             <TouchableOpacity style={styles.cancelButton} onPress={onClose}>
               <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.addButton} onPress={handleAdd}>
-              <Text style={styles.addButtonText}>Add</Text>
+            <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+              <Save size={16} color="white" />
+              <Text style={styles.saveButtonText}>Save Changes</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -220,55 +229,107 @@ const styles = StyleSheet.create({
   },
   container: {
     backgroundColor: colors.card,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 20,
     elevation: 5,
+    maxHeight: '80%',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   heading: {
     fontSize: 20,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: 20,
+    flex: 1,
     textAlign: 'center',
+    marginLeft: -20, // Compensate for the close button
+  },
+  closeButton: {
+    padding: 4,
   },
   input: {
-    backgroundColor: '#222',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     color: colors.text,
     borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     fontSize: 16,
     marginBottom: 15,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   typeSwitch: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 15,
+    marginBottom: 20,
   },
   typeButton: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
-    backgroundColor: '#333',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     marginHorizontal: 5,
   },
   typeButtonActive: {
     backgroundColor: colors.accent,
   },
   typeButtonText: {
-    color: '#aaa',
+    color: colors.text,
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
+    opacity: 0.8,
   },
   typeButtonTextActive: {
-    color: '#fff',
+    color: 'white',
+    opacity: 1,
+  },
+  sectionLabel: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 10,
+    marginTop: 5,
+  },
+  categoryScroll: {
+    marginBottom: 20,
+  },
+  categoryScrollContent: {
+    paddingHorizontal: 5,
+  },
+  categoryChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  categoryChipActive: {
+    borderColor: 'transparent',
+  },
+  categoryChipText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '500',
+    opacity: 0.8,
+  },
+  categoryChipTextActive: {
+    color: 'white',
+    fontWeight: '600',
+    opacity: 1,
   },
   datePickerButton: {
     paddingVertical: 12,
-    backgroundColor: '#333',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: 8,
-    marginBottom: 15,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   datePickerText: {
     color: colors.text,
@@ -280,62 +341,31 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   cancelButton: {
-    backgroundColor: '#555',
+    backgroundColor: 'rgba(255,255,255,0.1)',
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
     marginRight: 10,
   },
   cancelButtonText: {
-    color: '#eee',
+    color: colors.text,
     textAlign: 'center',
     fontWeight: '600',
     fontSize: 16,
   },
-  addButton: {
+  saveButton: {
     backgroundColor: colors.accent,
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
-  addButtonText: {
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: '600',
-    fontSize: 16,
-  },
-  sectionLabel: {
-    color: colors.text,
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 10,
-    marginTop: 5,
-  },
-  categoryScroll: {
-    marginBottom: 15,
-  },
-  categoryScrollContent: {
-    paddingHorizontal: 5,
-  },
-  categoryChip: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: '#333',
-    marginHorizontal: 4,
-    borderWidth: 1,
-    borderColor: '#444',
-  },
-  categoryChipActive: {
-    borderColor: 'transparent',
-  },
-  categoryChipText: {
-    color: '#aaa',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  categoryChipTextActive: {
+  saveButtonText: {
     color: 'white',
     fontWeight: '600',
+    fontSize: 16,
   },
 });
