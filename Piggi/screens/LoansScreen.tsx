@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-} from 'react-native';
+import { Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { colors } from '../theme/colors';
 import { useLoansStore } from '../store/useLoansStore';
 import { AddLoanModal } from '../components/AddLoanModal';
 import { LoanToolModal } from '../components/LoanToolModal';
+import { EnhancedLoanCard } from '../components/EnhancedLoanCard';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { LoansStackParamList } from '../navigation/LoansStack';
 
 export const LoansScreen = () => {
   const loans = useLoansStore(s => s.loans);
   const [modalVisible, setModalVisible] = useState(false);
   const [showLoanTool, setShowLoanTool] = useState(false);
+
+  const navigation =
+    useNavigation<NativeStackNavigationProp<LoansStackParamList>>();
 
   return (
     <SafeAreaView style={styles.container}>
@@ -27,16 +28,14 @@ export const LoansScreen = () => {
         <FlatList
           data={loans}
           keyExtractor={item => item.id}
+          showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.details}>
-                ${item.principal.toFixed(2)} @ {item.interestRate}% APR
-              </Text>
-              <Text style={styles.details}>
-                Monthly: ${item.monthlyPayment}
-              </Text>
-            </View>
+            <EnhancedLoanCard
+              loan={item}
+              onPress={() =>
+                navigation.navigate('LoanDetail', { loanId: item.id })
+              }
+            />
           )}
         />
       )}
