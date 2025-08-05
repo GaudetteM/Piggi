@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableWithoutFeedback, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableWithoutFeedback,
+  TouchableOpacity,
+} from 'react-native';
 import { PolarChart, Pie } from 'victory-native';
 import { colors } from '../theme/colors';
 import { useTransactionsStore } from '../store/useTransactionsStore';
@@ -7,7 +14,14 @@ import { useLoansStore } from '../store/useLoansStore';
 import { StatCard } from '../components/StatCard';
 import { SpendingInsights } from '../components/SpendingInsights';
 import { QuickActionMenu } from '../components/QuickActionMenu';
-import { DollarSign, TrendingUp, TrendingDown, CreditCard, PieChart, BarChart3 } from 'lucide-react-native';
+import {
+  DollarSign,
+  TrendingUp,
+  TrendingDown,
+  CreditCard,
+  PieChart,
+  BarChart3,
+} from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 
@@ -57,7 +71,7 @@ export default function DashboardScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
@@ -74,9 +88,14 @@ export default function DashboardScreen() {
         {/* Main Balance Overview */}
         <View style={styles.balanceOverview}>
           <Text style={styles.balanceLabel}>Current Balance</Text>
-          <Text style={[styles.balanceAmount, { 
-            color: balance >= 0 ? colors.income : colors.expense 
-          }]}>
+          <Text
+            style={[
+              styles.balanceAmount,
+              {
+                color: balance >= 0 ? colors.income : colors.expense,
+              },
+            ]}
+          >
             ${Math.abs(balance).toFixed(2)}
           </Text>
           <Text style={styles.balanceSubtext}>
@@ -90,29 +109,34 @@ export default function DashboardScreen() {
             title="Monthly Income"
             amount={incomeTotal}
             subtitle="This month"
-            gradientColors={[colors.income, colors.income + '80']}
-            icon={<TrendingUp size={20} color="white" />}
+            // gradientColors={[colors.income, colors.income + '80']}
+            valueColor={colors.income}
+            icon={<TrendingUp size={20} color={colors.income} />}
+            backgroundColor={colors.income + '15'}
             onPress={() => navigation.navigate('Transactions' as never)}
           />
-          
+
           <StatCard
             title="Monthly Expenses"
             amount={expenseTotal}
             subtitle="This month"
-            gradientColors={[colors.expense, colors.expense + '80']}
-            icon={<TrendingDown size={20} color="white" />}
+            // gradientColors={[colors.expense, colors.expense + '80']}
+            valueColor={colors.expense}
+            icon={<TrendingDown size={20} color={colors.expense} />}
+            backgroundColor={colors.expense + '15'}
             onPress={() => navigation.navigate('Transactions' as never)}
           />
-          
+
           <StatCard
             title="Active Loans"
             amount={totalLoans}
             subtitle={`${loans.length} loan${loans.length !== 1 ? 's' : ''}`}
-            gradientColors={[colors.accent, colors.accent + '80']}
-            icon={<CreditCard size={20} color="white" />}
+            // gradientColors={[colors.accent, colors.accent + '80']}
+            icon={<CreditCard size={20} color={colors.accent} />}
+            backgroundColor={colors.accent + '15'}
             onPress={() => navigation.navigate('Loans' as never)}
           />
-          
+
           <StatCard
             title="Net Worth"
             amount={balance - totalLoans}
@@ -130,24 +154,38 @@ export default function DashboardScreen() {
           <View style={styles.chartSection}>
             <View style={styles.chartHeader}>
               <Text style={styles.sectionTitle}>
-                {chartView === 'pie' ? 'Spending by Category' : 'Financial Overview'}
+                {chartView === 'pie'
+                  ? 'Spending by Category'
+                  : 'Financial Overview'}
               </Text>
               <View style={styles.chartToggle}>
                 <TouchableOpacity
-                  style={[styles.toggleButton, chartView === 'pie' && styles.toggleButtonActive]}
+                  style={[
+                    styles.toggleButton,
+                    chartView === 'pie' && styles.toggleButtonActive,
+                  ]}
                   onPress={() => setChartView('pie')}
                 >
-                  <PieChart size={18} color={chartView === 'pie' ? 'white' : colors.text} />
+                  <PieChart
+                    size={18}
+                    color={chartView === 'pie' ? 'white' : colors.text}
+                  />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.toggleButton, chartView === 'line' && styles.toggleButtonActive]}
+                  style={[
+                    styles.toggleButton,
+                    chartView === 'line' && styles.toggleButtonActive,
+                  ]}
                   onPress={() => setChartView('line')}
                 >
-                  <BarChart3 size={18} color={chartView === 'line' ? 'white' : colors.text} />
+                  <BarChart3
+                    size={18}
+                    color={chartView === 'line' ? 'white' : colors.text}
+                  />
                 </TouchableOpacity>
               </View>
             </View>
-            
+
             <View style={styles.chartContainer}>
               {chartView === 'pie' ? (
                 categoryData.length > 0 ? (
@@ -174,9 +212,7 @@ export default function DashboardScreen() {
                   <Text style={styles.placeholderTitle}>
                     Balance Trend Chart
                   </Text>
-                  <Text style={styles.placeholderSubtext}>
-                    Coming Soon...
-                  </Text>
+                  <Text style={styles.placeholderSubtext}>Coming Soon...</Text>
                 </View>
               )}
             </View>
@@ -185,7 +221,12 @@ export default function DashboardScreen() {
               <View style={styles.legend}>
                 {categoryData.slice(0, 4).map((item, index) => (
                   <View key={index} style={styles.legendItem}>
-                    <View style={[styles.legendDot, { backgroundColor: item.color }]} />
+                    <View
+                      style={[
+                        styles.legendDot,
+                        { backgroundColor: item.color },
+                      ]}
+                    />
                     <Text style={styles.legendText}>
                       {item.label}: ${item.value.toFixed(2)}
                     </Text>
@@ -206,14 +247,22 @@ export default function DashboardScreen() {
         {/* Recent Activity Preview */}
         <View style={styles.recentSection}>
           <Text style={styles.sectionTitle}>Recent Activity</Text>
-          {transactions.slice(0, 3).map((transaction) => (
+          {transactions.slice(0, 3).map(transaction => (
             <View key={transaction.id} style={styles.recentItem}>
               <Text style={styles.recentTitle}>{transaction.title}</Text>
-              <Text style={[
-                styles.recentAmount,
-                { color: transaction.type === 'income' ? colors.income : colors.expense }
-              ]}>
-                {transaction.type === 'income' ? '+' : '-'}${transaction.amount.toFixed(2)}
+              <Text
+                style={[
+                  styles.recentAmount,
+                  {
+                    color:
+                      transaction.type === 'income'
+                        ? colors.income
+                        : colors.expense,
+                  },
+                ]}
+              >
+                {transaction.type === 'income' ? '+' : '-'}$
+                {transaction.amount.toFixed(2)}
               </Text>
             </View>
           ))}

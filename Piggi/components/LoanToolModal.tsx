@@ -3,6 +3,7 @@ import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors } from '../theme/colors';
 import TrackLoanForm from './TrackLoanForm';
 import LoanCalculatorForm from './LoanCalculatorForm';
+import { PlusCircle, Calculator } from 'lucide-react-native';
 
 type Props = {
   visible: boolean;
@@ -22,7 +23,10 @@ export const LoanToolModal = ({ visible, onClose }: Props) => {
               style={[styles.tab, activeTab === 'track' && styles.tabActive]}
               onPress={() => setActiveTab('track')}
             >
-              <Text style={styles.tabText}>📄 Track Loan</Text>
+              <View style={styles.tabContent}>
+                <PlusCircle size={16} color="#fff" />
+                <Text style={styles.tabText}>Track Loan</Text>
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -32,12 +36,15 @@ export const LoanToolModal = ({ visible, onClose }: Props) => {
               ]}
               onPress={() => setActiveTab('calculator')}
             >
-              <Text style={styles.tabText}>📐 Calculator</Text>
+              <View style={styles.tabContent}>
+                <Calculator size={16} color="#fff" />
+                <Text style={styles.tabText}>Calculator</Text>
+              </View>
             </TouchableOpacity>
           </View>
 
           {/* Tab Content */}
-          <View style={{ flex: 1 }}>
+          <View style={styles.tabContentContainer}>
             {activeTab === 'track' ? (
               <TrackLoanForm onClose={onClose} />
             ) : (
@@ -79,9 +86,18 @@ const styles = StyleSheet.create({
   tabActive: {
     backgroundColor: colors.accent,
   },
+  tabContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
   tabText: {
     color: '#fff',
     fontWeight: '600',
     textAlign: 'center',
+  },
+  tabContentContainer: {
+    flex: 1,
   },
 });

@@ -8,6 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { colors } from '../theme/colors';
+import { DollarSign, TrendingUp, Receipt } from 'lucide-react-native';
 
 function calculateLoan(principal: number, apr: number, termMonths: number) {
   const monthlyRate = apr / 100 / 12;
@@ -47,7 +48,7 @@ export default function LoanCalculatorForm() {
   const handleCalculate = () => {
     const p = parseFloat(principal);
     const i = parseFloat(interestRate);
-    const t = parseInt(termMonths);
+    const t = parseInt(termMonths, 10);
 
     if (isNaN(p) || isNaN(i) || isNaN(t)) {
       Alert.alert('Enter valid numbers for all fields');
@@ -91,24 +92,41 @@ export default function LoanCalculatorForm() {
 
       {result && (
         <View style={styles.results}>
-          <Text style={styles.resultText}>
-            💵 Monthly Payment:{' '}
-            <Text style={styles.resultHighlight}>
-              ${result.monthlyPayment.toFixed(2)}
+          <View style={styles.resultRow}>
+            <View style={styles.resultIcon}>
+              <DollarSign size={16} color={colors.accent} />
+            </View>
+            <Text style={styles.resultText}>
+              Monthly Payment:{' '}
+              <Text style={styles.resultHighlight}>
+                ${result.monthlyPayment.toFixed(2)}
+              </Text>
             </Text>
-          </Text>
-          <Text style={styles.resultText}>
-            📈 Total Interest:{' '}
-            <Text style={styles.resultHighlight}>
-              ${result.totalInterest.toFixed(2)}
+          </View>
+          
+          <View style={styles.resultRow}>
+            <View style={styles.resultIcon}>
+              <TrendingUp size={16} color={colors.expense} />
+            </View>
+            <Text style={styles.resultText}>
+              Total Interest:{' '}
+              <Text style={styles.resultHighlight}>
+                ${result.totalInterest.toFixed(2)}
+              </Text>
             </Text>
-          </Text>
-          <Text style={styles.resultText}>
-            🧾 Total Paid:{' '}
-            <Text style={styles.resultHighlight}>
-              ${result.totalPaid.toFixed(2)}
+          </View>
+          
+          <View style={styles.resultRow}>
+            <View style={styles.resultIcon}>
+              <Receipt size={16} color={colors.income} />
+            </View>
+            <Text style={styles.resultText}>
+              Total Paid:{' '}
+              <Text style={styles.resultHighlight}>
+                ${result.totalPaid.toFixed(2)}
+              </Text>
             </Text>
-          </Text>
+          </View>
         </View>
       )}
     </View>
@@ -142,10 +160,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#333',
     borderRadius: 8,
   },
+  resultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  resultIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
   resultText: {
     fontSize: 16,
     color: colors.text,
-    marginBottom: 8,
+    flex: 1,
   },
   resultHighlight: {
     fontWeight: 'bold',

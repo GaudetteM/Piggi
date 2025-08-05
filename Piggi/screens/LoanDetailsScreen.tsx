@@ -1,12 +1,24 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { RouteProp, useRoute, useNavigation } from '@react-navigation/native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+} from 'react-native';
+import { RouteProp, useRoute } from '@react-navigation/native';
 import { colors } from '../theme/colors';
 import { calculateLoan } from '../utils/loanHelpers';
 import { useLoansStore } from '../store/useLoansStore';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Calendar, DollarSign, Percent, CreditCard, Plus, Zap } from 'lucide-react-native';
+import {
+  Calendar,
+  DollarSign,
+  Percent,
+  CreditCard,
+  Plus,
+  Zap,
+} from 'lucide-react-native';
 import { StatCard } from '../components/StatCard';
+import { AmortizationVisualization } from '../components/AmortizationVisualization';
 
 type LoanDetailParams = {
   LoanDetail: { loanId: string };
@@ -16,7 +28,6 @@ type Props = RouteProp<LoanDetailParams, 'LoanDetail'>;
 
 export const LoanDetailScreen = () => {
   const route = useRoute<Props>();
-  const navigation = useNavigation();
   const { loanId } = route.params;
 
   // Load from Zustand store
@@ -24,21 +35,30 @@ export const LoanDetailScreen = () => {
 
   if (!loan) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.centered}>
           <Text style={styles.error}>Loan not found.</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
-  const { monthlyPayment, totalPaid, totalInterest, term } = calculateLoan(
+  const { monthlyPayment, totalPaid, totalInterest, term, amortization, payoffDate } = calculateLoan(
     loan.principal,
     loan.interestRate,
     loan.monthlyPayment,
     loan.extraMonthly,
     loan.lumpSum,
   );
+
+  const loanCalculation = {
+    monthlyPayment,
+    totalPaid,
+    totalInterest,
+    term,
+    amortization,
+    payoffDate,
+  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -49,21 +69,17 @@ export const LoanDetailScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <ArrowLeft size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Loan Details</Text>
-        <View style={styles.placeholder} />
-      </View>
-
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Loan Name */}
         <View style={styles.titleSection}>
           <Text style={styles.loanName}>{loan.name}</Text>
-          <Text style={styles.startDate}>Started {formatDate(loan.startDate)}</Text>
+          <Text style={styles.startDate}>
+            Started {formatDate(loan.startDate)}
+          </Text>
         </View>
 
         {/* Stats Grid */}
@@ -74,7 +90,7 @@ export const LoanDetailScreen = () => {
             icon={<DollarSign size={20} color={colors.accent} />}
             backgroundColor={colors.accent + '15'}
           />
-          
+
           <StatCard
             title="Interest Rate"
             amount={loan.interestRate}
@@ -82,14 +98,14 @@ export const LoanDetailScreen = () => {
             icon={<Percent size={20} color={colors.expense} />}
             backgroundColor={colors.expense + '15'}
           />
-          
+
           <StatCard
             title="Monthly Payment"
             amount={loan.monthlyPayment}
             icon={<Calendar size={20} color={colors.income} />}
             backgroundColor={colors.income + '15'}
           />
-          
+
           <StatCard
             title="Total Interest"
             amount={totalInterest}
@@ -103,7 +119,7 @@ export const LoanDetailScreen = () => {
         {(loan.extraMonthly || loan.lumpSum) && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Additional Payments</Text>
-            
+
             {loan.extraMonthly && (
               <View style={styles.infoRow}>
                 <View style={styles.infoIcon}>
@@ -111,7 +127,9 @@ export const LoanDetailScreen = () => {
                 </View>
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Extra Monthly</Text>
-                  <Text style={styles.infoValue}>${loan.extraMonthly.toFixed(2)}</Text>
+                  <Text style={styles.infoValue}>
+                    ${loan.extraMonthly.toFixed(2)}
+                  </Text>
                 </View>
               </View>
             )}
@@ -123,7 +141,9 @@ export const LoanDetailScreen = () => {
                 </View>
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Lump Sum</Text>
-                  <Text style={styles.infoValue}>${loan.lumpSum.toFixed(2)}</Text>
+                  <Text style={styles.infoValue}>
+                    ${loan.lumpSum.toFixed(2)}
+                  </Text>
                 </View>
               </View>
             )}
@@ -133,7 +153,7 @@ export const LoanDetailScreen = () => {
         {/* Summary */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Loan Summary</Text>
-          
+
           <View style={styles.summaryCard}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Total Amount Paid</Text>
@@ -141,14 +161,14 @@ export const LoanDetailScreen = () => {
                 ${totalPaid.toFixed(2)}
               </Text>
             </View>
-            
+
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Total Interest Paid</Text>
               <Text style={[styles.summaryValue, { color: colors.expense }]}>
                 ${totalInterest.toFixed(2)}
               </Text>
             </View>
-            
+
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Time to Pay Off</Text>
               <Text style={[styles.summaryValue, { color: colors.accent }]}>
@@ -157,8 +177,17 @@ export const LoanDetailScreen = () => {
             </View>
           </View>
         </View>
+
+        {/* Amortization Visualization */}
+        <AmortizationVisualization
+          loanCalculation={loanCalculation}
+          principal={loan.principal}
+          interestRate={loan.interestRate}
+          monthlyPayment={loan.monthlyPayment}
+          extraMonthly={loan.extraMonthly}
+        />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -167,32 +196,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  placeholder: {
-    width: 40,
-  },
   scrollContent: {
     paddingBottom: 40,
   },
   titleSection: {
     paddingHorizontal: 20,
-    paddingVertical: 24,
+    paddingTop: 20,
+    paddingBottom: 20,
     alignItems: 'center',
   },
   loanName: {
@@ -213,6 +223,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 12,
     marginBottom: 24,
+    gap: 12,
   },
   section: {
     marginHorizontal: 20,

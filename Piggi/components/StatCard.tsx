@@ -1,5 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Dimensions,
+  TouchableOpacity,
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import { colors } from '../theme/colors';
 import { formatCurrency } from '../utils/formatters';
@@ -11,44 +17,64 @@ type Props = {
   amount: number;
   subtitle?: string;
   backgroundColor?: string;
+  valueColor?: string;
   gradientColors?: string[];
   icon?: React.ReactNode;
   onPress?: () => void;
 };
 
-export const StatCard = ({ 
-  title, 
-  amount, 
-  subtitle, 
+export const StatCard = ({
+  title,
+  amount,
+  subtitle,
   backgroundColor,
+  valueColor,
   gradientColors,
   icon,
-  onPress
+  onPress,
 }: Props) => {
   const contentView = (
     <View style={styles.content}>
       <View style={styles.header}>
         {icon && <View style={styles.icon}>{icon}</View>}
-        <Text style={[styles.title, gradientColors && { color: 'rgba(255,255,255,0.9)' }]}>
+        <Text
+          style={[
+            styles.title,
+            gradientColors && styles.gradientTitle,
+          ]}
+        >
           {title}
         </Text>
       </View>
-      
-      <Text style={[styles.amount, gradientColors && { color: 'white' }]} numberOfLines={1} adjustsFontSizeToFit>
+
+      <Text
+        style={[
+          styles.amount, 
+          gradientColors && styles.gradientAmount,
+          valueColor && !gradientColors && { color: valueColor }
+        ]}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
         {formatCurrency(amount)}
       </Text>
-      
+
       {subtitle && (
-        <Text style={[styles.subtitle, gradientColors && { color: 'rgba(255,255,255,0.8)' }]}>
+        <Text
+          style={[
+            styles.subtitle,
+            gradientColors && styles.gradientSubtitle,
+          ]}
+        >
           {subtitle}
         </Text>
       )}
     </View>
   );
-  
+
   if (gradientColors) {
     const gradientContent = (
-      <LinearGradient 
+      <LinearGradient
         colors={gradientColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -57,25 +83,34 @@ export const StatCard = ({
         {contentView}
       </LinearGradient>
     );
-    
+
     return onPress ? (
       <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
         {gradientContent}
       </TouchableOpacity>
-    ) : gradientContent;
+    ) : (
+      gradientContent
+    );
   }
-  
+
   const regularContent = (
-    <View style={[styles.container, { backgroundColor: backgroundColor || colors.card }]}>
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: backgroundColor || colors.card },
+      ]}
+    >
       {contentView}
     </View>
   );
-  
+
   return onPress ? (
     <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
       {regularContent}
     </TouchableOpacity>
-  ) : regularContent;
+  ) : (
+    regularContent
+  );
 };
 
 const styles = StyleSheet.create({
@@ -127,5 +162,14 @@ const styles = StyleSheet.create({
     color: colors.text,
     opacity: 0.8,
     marginTop: 4,
+  },
+  gradientTitle: {
+    color: 'rgba(255,255,255,0.9)',
+  },
+  gradientAmount: {
+    color: 'white',
+  },
+  gradientSubtitle: {
+    color: 'rgba(255,255,255,0.8)',
   },
 });

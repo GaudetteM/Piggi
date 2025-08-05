@@ -4,7 +4,7 @@ import { colors } from '../theme/colors';
 import { useLoansStore } from '../store/useLoansStore';
 import { AddLoanModal } from '../components/AddLoanModal';
 import { LoanToolModal } from '../components/LoanToolModal';
-import { EnhancedLoanCard } from '../components/EnhancedLoanCard';
+import { MinimalLoanCard } from '../components/MinimalLoanCard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -30,7 +30,7 @@ export const LoansScreen = () => {
           keyExtractor={item => item.id}
           showsVerticalScrollIndicator={false}
           renderItem={({ item }) => (
-            <EnhancedLoanCard
+            <MinimalLoanCard
               loan={item}
               onPress={() =>
                 navigation.navigate('LoanDetail', { loanId: item.id })
